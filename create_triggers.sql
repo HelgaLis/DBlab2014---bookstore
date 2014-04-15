@@ -32,7 +32,7 @@ BEFORE insert position 0
 as
 begin
  IF (NEW.id IS NULL)
-    THEN NEW.ID = gen_id(g_order_contents,1);
+    THEN NEW.ID = gen_id(g_order_content,1);
 end!!!
 SET TERM; !!!
 SET TERM !!!;
