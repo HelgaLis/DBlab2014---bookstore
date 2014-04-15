@@ -1,0 +1,238 @@
+Задание. Интернет-магазин книг
+Хранит информацию о категориях, книгах, рейтинге книг, отзывах читателей, авторах, издательствах, клиентах, позволяет клиентам формировать покупки и сохраняет историю продаж. ИС автоматически формирует список сопутствующих товаров для каждой покупке (см.  http://www.amazon.com/)
+Диаграммы базы данных.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Скрипты, создающие базу данных.
+SET SQL DIALECT 3; 
+  
+SET NAMES CYRL; 
+  
+CREATE DATABASE '~\BOOK_SHOP.FDB'
+USER 'SYSDBA' PASSWORD 'masterkey'
+PAGE_SIZE 4096 
+DEFAULT CHARACTER SET CYRL COLLATION CYR
+create table books_categories(
+id int not null primary key,
+name varchar(40) not null);
+
+create table authors(
+id int not null primary key,
+name varchar(50) not null);
+
+create table books(
+id int not null primary key,
+name varchar(50) not null,
+publish_date date,
+price decimal(10,2) not null,
+items int not null,
+category int references books_categories(id),
+constraint available_items check (items>=0),
+constraint price_val check (price>=0));
+
+create table books_authors(
+id int not null primary key,
+book int  references books(id),
+author int references authors(id));
+
+create table customers(
+id int not null primary key,
+name varchar(50) not null 
+);
+
+create table customers_orders(
+id int not null primary key,
+customer int references customers(id),
+order_date date not null,
+order_status char(1)
+);
+
+create table order_content(
+id int not null primary key,
+customer int references customers(id),
+customers_orders int references customers_orders(id),
+book int  references books(id)
+);
+
+create table books_reviews(
+id int not null primary key,
+book int  references books(id),
+customer int references customers(id),
+review_text BLOB not null,
+book_rate int default 0,
+constraint c_rate check (book_rate between 0 AND 5)
+);
+
+
+create generator g_books;
+create generator g_authors;
+create generator g_books_categories;
+create generator g_books_authors;
+create generator g_customers;
+create generator g_customers_orders;
+create generator g_order_content;
+
+SET TERM !!!;
+create trigger p_cust for CUSTOMERS
+BEFORE insert position 0
+as
+begin
+ IF (NEW.id IS NULL)
+    THEN NEW.ID = gen_id(g_customers,1);
+end!!!
+SET TERM; !!!
+
+SET TERM !!!;
+create trigger p_cust_ord for CUSTOMERS_ORDERS
+BEFORE insert position 0
+as
+begin
+ IF (NEW.id IS NULL)
+    THEN NEW.ID = gen_id(g_customers_orders,1);
+end!!!
+SET TERM; !!!
+
+SET TERM !!!;
+create trigger p_ord_cont for ORDER_CONTENT
+BEFORE insert position 0
+as
+begin
+ IF (NEW.id IS NULL)
+    THEN NEW.ID = gen_id(g_order_content,1);
+end!!!
+SET TERM; !!!
+SET TERM !!!;
+create trigger p_bo for BOOKS
+BEFORE insert position 0
+as
+begin
+ IF (NEW.id IS NULL)
+    THEN NEW.ID = gen_id(g_books,1);
+end!!!
+SET TERM; !!!
+
+SET TERM !!!;
+create trigger p_au for AUTHORS
+BEFORE insert position 0
+as
+begin
+ IF (NEW.id IS NULL)
+    THEN NEW.ID = gen_id(g_authors,1);
+end!!!
+SET TERM; !!!
+
+SET TERM !!!;
+create trigger p_cat for BOOKS_CATEGORIES
+BEFORE insert position 0
+as
+begin
+ IF (NEW.id IS NULL)
+    THEN NEW.ID = gen_id(g_books_categories,1);
+end!!!
+SET TERM; !!!
+
+SET TERM !!!;
+create trigger p_boau for BOOKS_AUTHORS
+BEFORE insert position 0
+as
+begin
+ IF (NEW.id IS NULL)
+    THEN NEW.ID = gen_id(g_books_authors,1);
+end!!!
+SET TERM; !!!
+Скрипты для вставки в базу данных осмысленных данных.
+/*add book's authors*/
+INSERT INTO AUTHORS(name) values('Роберт Седжвик');
+INSERT INTO AUTHORS(name) values('Кевин Уэйн');
+INSERT INTO AUTHORS(name) values('Silvia Platt');
+INSERT INTO AUTHORS(name) values('Грегорий Остер');
+INSERT INTO AUTHORS(name) values('Умберто Эко');
+
+/*add book's categories*/
+insert into BOOKS_CATEGORIES(name) values('Программирование');
+insert into BOOKS_CATEGORIES(name) values('Детские книги');
+insert into BOOKS_CATEGORIES(name) values('Ноты');
+insert into BOOKS_CATEGORIES(name) values('Школьные учебники');
+insert into BOOKS_CATEGORIES(name) values('Гиды');
+insert into BOOKS_CATEGORIES(name) values('Поэзия');
+insert into BOOKS_CATEGORIES(name) values('Проза');
+
+/*add books*/
+INSERT INTO BOOKS(name,price, items,category) VALUES ('Программирование на JAVA',700.00,4,BOOKS_CATEGORIES.id);
+INSERT INTO BOOKS(name,price, items,category) VALUES ('Belly jar',450.00,1,7);
+INSERT INTO BOOKS(name,price, items,category) VALUES ('Вредные советы',200.00,25,2);
+INSERT INTO BOOKS(name,price, items,category) VALUES ('Буандолино',467.00,15,7);
+INSERT INTO BOOKS(name,price, items,category) VALUES ('Маятник Фуко',390.00,9,7);
+
+/*add link between authors and books*/
+INSERT INTO BOOKS_AUTHORS(BOOK,AUTHOR) VALUES(1,1);
+INSERT INTO BOOKS_AUTHORS(BOOK,AUTHOR) VALUES(1,2);
+INSERT INTO BOOKS_AUTHORS(BOOK,AUTHOR) VALUES(3,3);
+INSERT INTO BOOKS_AUTHORS(BOOK,AUTHOR) VALUES(4,4);
+INSERT INTO BOOKS_AUTHORS(BOOK,AUTHOR) VALUES(5,5);
+INSERT INTO BOOKS_AUTHORS(BOOK,AUTHOR) VALUES(6,5);
+
+/*add CUSTOMERS*/
+INSERT INTO CUSTOMERS(name) VALUES('Елизата Пельмешова');
+INSERT INTO CUSTOMERS(name) VALUES('Ольга Яровая');
+INSERT INTO CUSTOMERS(name) VALUES('Атон Мясков');
+
+/*add books_orders*/
+INSERT INTO CUSTOMERS_ORDERS(customer,order_date,order_status) VALUES(1,current_date,'0'); 
+INSERT INTO CUSTOMERS_ORDERS(customer,order_date,order_status) VALUES(2,current_date,'0'); 
+INSERT INTO CUSTOMERS_ORDERS(customer,order_date,order_status) VALUES(3,current_date,'0');
+
+/*order_content*/
+INSERT INTO ORDER_CONTENT(CUSTOMERS_ORDERS,BOOK) VALUES(1,1);
+INSERT INTO ORDER_CONTENT(CUSTOMERS_ORDERS,BOOK) VALUES(1,3);
+INSERT INTO ORDER_CONTENT(CUSTOMERS_ORDERS,BOOK) VALUES(2,2);
+INSERT INTO ORDER_CONTENT(CUSTOMERS_ORDERS,BOOK) VALUES(2,1);
+INSERT INTO ORDER_CONTENT(CUSTOMERS_ORDERS,BOOK) VALUES(2,4);
+Скрипты стандартных запросов.
+•	Выборка данных из каждой таблицы
+SELECT * FROM BOOKS_CATEGORIES;
+SELECT * FROM BOOKS;
+SELECT * FROM BOOKS_AUTHORS;
+SELECT * FROM CUSTOMERS;
+SELECT * FROM CUSTOMERS_ORDERS;
+SELECT * FROM ORDER_CONTENT;
+•	Выборка данных из одной таблицы при нескольких условиях, с использованием логических операций, LIKE, BETWEEN, IN
+SELECT * FROM BOOKS WHERE name LIKE 'Пр%';
+SELECT * FROM BOOKS WHERE price BETWEEN 300 AND 400;
+SELECT * FROM BOOKS WHERE category IN (4,5,7);
+•	Вычисляемое поле  в запросе 
+SELECT max(items) FROM BOOKS;
+•	Выборка всех данных с сортировкой по нескольким полям 
+SELECT * FROM BOOKS ORDER BY category, name;
+•	Запрос, вычисляющий несколько совокупных характеристик таблиц 
+
+•	Выборка данных из связанных таблиц (не менее двух примеров) 
+
+•	Запрос, рассчитывающий совокупную характеристику с использованием группировки, наложите ограничение на результат группировки 
+SELECT category, COUNT(name) FROM BOOKS GROUP BY category HAVING COUNT(name)>1;
+•	Вложенный запрос  
+
+•	Оператор UPDATE, изменить значения нескольких полей у всех записей, отвечающих заданному условию 
+
+•	Оператор DELETE, удалить запись, имеющую максимальное (минимальное) значение некоторой совокупной характеристики 
+
+•	Оператор DELETE, удалить записи в главной таблице, на которые не ссылается подчиненная таблица (используя вложенный запрос)
